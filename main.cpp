@@ -306,7 +306,6 @@ void checkWin(){
             }
         }
     }
-    std::cout << qtd_bombs_flagged << std::endl;
     if(qtd_bombs_flagged == 10){
         win = true;
     }
