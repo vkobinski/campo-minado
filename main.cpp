@@ -13,7 +13,6 @@ int randomNumber(){
     std::random_device dev;
     std::mt19937 rng(dev());
     std::uniform_int_distribution<std::mt19937::result_type> dist6(0,9); // distribution in range [1, 6]
-    
     int nmb = dist6(rng);
     return nmb;
 }
@@ -26,8 +25,9 @@ void revelar(int x, int y);
 const int WIDTH = 9;
 const int HEIGHT = 9;
 
-int board[WIDTH][HEIGHT];
-int revealed[WIDTH][HEIGHT];
+int board[HEIGHT][WIDTH];
+int revealed[HEIGHT][WIDTH];
+int qtd_bombas_inicial = 10;
 
 std::unique_ptr<olc::Sprite> flag;
 std::unique_ptr<olc::Decal> flagDecal;
@@ -42,8 +42,6 @@ public:
         sAppName = "Campo Minado";
     }
 public:
-    int qtd_bombas_inicial = 10;
-public:
     bool OnUserCreate() override
     {
         flag = std::make_unique<olc::Sprite>("./flag.png");
@@ -56,15 +54,15 @@ public:
                 revealed[y][x] = 0;
             }
         }
-        int qtd_bombas = qtd_bombas_inicial;
-        while(qtd_bombas > 0){
+        int qtd_bombas = 0;
+        while(qtd_bombas < qtd_bombas_inicial){
             int y = randomNumber();
             int x = randomNumber();
             if(board[y][x] == -1){
                 continue;
             }else{
                 board[y][x] = -1;
-                qtd_bombas--;
+                qtd_bombas++;
             }
         }
         for(int y = 0; y < WIDTH; y++){
@@ -77,6 +75,7 @@ public:
     }
     bool OnUserUpdate(float fElapsedTime) override
     {
+        
         checkWin();
         FillRect(olc::vi2d(0,0), olc::vi2d(ScreenWidth(), ScreenHeight()), olc::WHITE);
         std::string printString;
@@ -105,20 +104,21 @@ public:
                 olc::vi2d mousePos = GetMousePos();
                 int mousePosX = mousePos.x/SQUARE_SIZE;
                 int mousePosY = (mousePos.y)/SQUARE_SIZE;
-                std::cout << "aqui" << std::endl;
+                if(mousePosX < 9 || mousePosY < 9){
                 
                 if(revealed[mousePosY][mousePosX] == 0){
                     revealed[mousePosY][mousePosX] = 2;
                 }
                 else if(revealed[mousePosY][mousePosX] == 2){
-                 
                     revealed[mousePosY][mousePosX] = 0;
+                }
                 }
             }
             if(GetMouse(olc::Mouse::LEFT).bPressed){
                 olc::vi2d mousePos = GetMousePos();
                 int mousePosX = mousePos.x/SQUARE_SIZE;
                 int mousePosY = (mousePos.y)/SQUARE_SIZE;
+                if(mousePosX < 9 || mousePosY < 9){
                 if(board[mousePosY][mousePosX] == -1){
                     gameOver = true;
                 }
@@ -127,6 +127,7 @@ public:
                 }
                 if(board[mousePosY][mousePosX] > 0){
                     revealed[mousePosY][mousePosX] = 1;
+                }
                 }
             }
             
@@ -266,7 +267,6 @@ void revelar(int x, int y){
     while(!stack.empty()){
         olc::vi2d atual = stack.top();
         revealed[atual.y][atual.x] = 1;
-        std::cout << "atual x: " << atual.x << " " << "atual y: " << atual.y << std::endl;
         stack.pop();
         if(foraArrayFunc(atual.x + 1, atual.y) == 0 && foraRevealed(atual.x + 1, atual.y) == 0){
             stack.push(olc::vi2d(atual.x + 1, atual.y));
@@ -306,7 +306,7 @@ void checkWin(){
             }
         }
     }
-    if(qtd_bombs_flagged == 10){
+    if(qtd_bombs_flagged == qtd_bombas_inicial){
         win = true;
     }
 }
