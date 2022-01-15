@@ -20,8 +20,6 @@ int randomNumber(){
 bool gameOver = false;
 bool win = false;
 
-void revelar(int x, int y);
-
 const int WIDTH = 9;
 const int HEIGHT = 9;
 
@@ -41,6 +39,100 @@ public:
     {
         sAppName = "Campo Minado";
     }
+
+public:
+    std::stack<olc::vi2d> stack;
+
+public:
+    int bombasEnvolta(int x, int y){
+    int count = 0;
+    count += foraArray(x+1,y);
+    count += foraArray(x-1,y);
+    count += foraArray(x,y+1);
+    count += foraArray(x,y-1);
+    count += foraArray(x+1,y+1);
+    count += foraArray(x-1,y-1);
+    count += foraArray(x+1,y-1);
+    count += foraArray(x-1,y+1);
+    return count;
+}
+int foraArray(int x, int y){
+    if(x > WIDTH || x < 0){
+        return 0;
+    }
+    if(y > HEIGHT || y < 0){
+        return 0;
+    }
+    else{
+        if(board[y][x] == -1){
+            return 1;
+        }
+        return 0;
+    }
+}
+
+bool arrayBoundTest(int x, int y){
+    if(x > WIDTH || x < 0){
+        return false;
+    }
+    if(y > HEIGHT || y < 0){
+        return false;
+    }
+     return true;
+}
+
+private:
+    void adicionarStack(int x, int y){
+        if(arrayBoundTest(x,y) == true && board[y][x] == 0){
+            olc::vi2d inicio = olc::vi2d(x,y);
+            stack.push(inicio);
+        }
+        while(!stack.empty()){
+            removerStack();
+        }
+    }
+
+
+private:
+int get_total_bombs(){
+    int total_bombs = 0;
+    for(int y = 0; y < HEIGHT; y++){
+        for(int x = 0; x < WIDTH; x++){
+            if(board[y][x] == -1){
+                total_bombs++;
+            }
+        }
+    }   
+    return total_bombs;
+}
+
+private:
+    void testCell(int x, int y){
+        if(arrayBoundTest(x,y) == true){
+            if(board[y][x] > 0){
+                revealed[y][x] = 1;
+            }
+            if(board[y][x] == 0 && revealed[y][x] == 0){
+                stack.push(olc::vi2d(x,y));
+            }
+            else{
+                return;
+            }
+        }
+    }
+
+private:
+void removerStack(){
+    olc::vi2d atual = stack.top();
+    revealed[atual.y][atual.x] = 1;
+    stack.pop();
+
+    testCell(atual.x+1, atual.y);
+    testCell(atual.x-1, atual.y);
+    testCell(atual.x, atual.y+1);
+    testCell(atual.x, atual.y-1);
+}
+
 public:
     bool OnUserCreate() override
     {
@@ -58,9 +150,7 @@ public:
         while(qtd_bombas < qtd_bombas_inicial){
             int y = randomNumber();
             int x = randomNumber();
-            if(board[y][x] == -1){
-                continue;
-            }else{
+            if(board[y][x] != -1){
                 board[y][x] = -1;
                 qtd_bombas++;
             }
@@ -89,7 +179,7 @@ public:
             px = olc::GREEN;
         }
         else{
-            printString = std::string("Quantidade de bombas: " + std::to_string(qtd_bombas_inicial));
+            printString = std::string("Quantidade de bombas: " + std::to_string(get_total_bombs()));
         }
 
         DrawString(olc::vi2d(10, ScreenHeight() - 40), printString, px, 2U);
@@ -102,20 +192,23 @@ public:
             if(GetMouse(olc::Mouse::RIGHT).bPressed){
 
                 olc::vi2d mousePos = GetMousePos();
-                int mousePosX = mousePos.x/SQUARE_SIZE;
-                int mousePosY = (mousePos.y)/SQUARE_SIZE;
-                if(mousePosX < 9 || mousePosY < 9){
-                
-                if(revealed[mousePosY][mousePosX] == 0){
-                    revealed[mousePosY][mousePosX] = 2;
-                }
-                else if(revealed[mousePosY][mousePosX] == 2){
-                    revealed[mousePosY][mousePosX] = 0;
-                }
+                if(mousePos.x < 405 && mousePos.y < 405){        
+                    int mousePosX = mousePos.x/SQUARE_SIZE;
+                    int mousePosY = (mousePos.y)/SQUARE_SIZE;
+                    if(mousePosX < 9 || mousePosY < 9){
+                    
+                    if(revealed[mousePosY][mousePosX] == 0){
+                        revealed[mousePosY][mousePosX] = 2;
+                    }
+                    else if(revealed[mousePosY][mousePosX] == 2){
+                        revealed[mousePosY][mousePosX] = 0;
+                    }
+                    }
                 }
             }
             if(GetMouse(olc::Mouse::LEFT).bPressed){
                 olc::vi2d mousePos = GetMousePos();
+                if(mousePos.x < 405 && mousePos.y < 405){
                 int mousePosX = mousePos.x/SQUARE_SIZE;
                 int mousePosY = (mousePos.y)/SQUARE_SIZE;
                 if(mousePosX < 9 || mousePosY < 9){
@@ -123,10 +216,11 @@ public:
                     gameOver = true;
                 }
                 if(board[mousePosY][mousePosX] == 0){
-                    revelar(mousePosX, mousePosY);
+                    adicionarStack(mousePosX, mousePosY);
                 }
                 if(board[mousePosY][mousePosX] > 0){
                     revealed[mousePosY][mousePosX] = 1;
+                }
                 }
                 }
             }
@@ -212,101 +306,57 @@ int main() {
     return 0;
 }
 
-
-int bombasEnvolta(int x, int y){
-    int count = 0;
-    count += foraArray(x+1,y);
-    count += foraArray(x-1,y);
-    count += foraArray(x,y+1);
-    count += foraArray(x,y-1);
-    count += foraArray(x+1,y+1);
-    count += foraArray(x-1,y-1);
-    count += foraArray(x+1,y-1);
-    count += foraArray(x-1,y+1);
-    return count;
-}
-int foraArray(int x, int y){
-    if(x > WIDTH || x < 0){
-        return 0;
-    }
-    if(y > HEIGHT || y < 0){
-        return 0;
-    }
-    else{
-        if(board[y][x] == -1){
-            return 1;
-        }
-        return 0;
-    }
-}
-
-int foraArrayFunc(int x, int y){
-    if(x > WIDTH || x < 0){
-        return -1;
-    }
-    if(y > HEIGHT || y < 0){
-        return -1;
-    }
-     return board[y][x];
-}
-
-int foraRevealed(int x, int y){
-    if(x > WIDTH || x < 0){
-        return -1;
-    }
-    if(y > HEIGHT || y < 0){
-        return -1;
-    }
-    return revealed[y][x];
-}
-
-void revelar(int x, int y){
-    std::stack<olc::vi2d> stack;
-    olc::vi2d inicio = olc::vi2d(x,y);
-    stack.push(inicio);
-    while(!stack.empty()){
-        olc::vi2d atual = stack.top();
-        revealed[atual.y][atual.x] = 1;
-        stack.pop();
-        if(foraArrayFunc(atual.x + 1, atual.y) == 0 && foraRevealed(atual.x + 1, atual.y) == 0){
-            stack.push(olc::vi2d(atual.x + 1, atual.y));
-        }
-        if(foraArrayFunc(atual.x, atual.y+1) == 0 && foraRevealed(atual.x, atual.y+1) == 0){
-            stack.push(olc::vi2d(atual.x, atual.y+1));
-        }
-        if(foraArrayFunc(atual.x - 1, atual.y) == 0 && foraRevealed(atual.x - 1, atual.y) == 0){
-            stack.push(olc::vi2d(atual.x - 1, atual.y));
-        }
-        if(foraArrayFunc(atual.x, atual.y-1) == 0 && foraRevealed(atual.x, atual.y-1) == 0){
-            stack.push(olc::vi2d(atual.x, atual.y-1));
-        }
+// void revelar(int x, int y){
+//     std::stack<olc::vi2d> stack;
+//     olc::vi2d inicio = olc::vi2d(x,y);
+//     stack.push(inicio);
+//     while(!stack.empty()){
+//         olc::vi2d atual = stack.top();
+//         revealed[atual.y][atual.x] = 1;
+//         stack.pop();
+//         if(foraArrayFunc(atual.x + 1, atual.y) == 0 && foraRevealed(atual.x + 1, atual.y) == 0){
+//             stack.push(olc::vi2d(atual.x + 1, atual.y));
+//         }
+//         if(foraArrayFunc(atual.x, atual.y+1) == 0 && foraRevealed(atual.x, atual.y+1) == 0){
+//             stack.push(olc::vi2d(atual.x, atual.y+1));
+//         }
+//         if(foraArrayFunc(atual.x - 1, atual.y) == 0 && foraRevealed(atual.x - 1, atual.y) == 0){
+//             stack.push(olc::vi2d(atual.x - 1, atual.y));
+//         }
+//         if(foraArrayFunc(atual.x, atual.y-1) == 0 && foraRevealed(atual.x, atual.y-1) == 0){
+//             stack.push(olc::vi2d(atual.x, atual.y-1));
+//         }
         
 
-        if(foraArrayFunc(atual.x + 1, atual.y) > 0 && foraRevealed(atual.x + 1, atual.y) == 0){
-            revealed[atual.y][atual.x + 1] = 1;
-        }
-        if(foraArrayFunc(atual.x, atual.y+1) > 0 && foraRevealed(atual.x, atual.y+1) == 0){
-            revealed[atual.y+1][atual.x] = 1;
-        }
-        if(foraArrayFunc(atual.x - 1, atual.y) > 0 && foraRevealed(atual.x - 1, atual.y) == 0){
-            revealed[atual.y][atual.x - 1] = 1;
-        }
-        if(foraArrayFunc(atual.x, atual.y-1) > 0 && foraRevealed(atual.x, atual.y-1) == 0){
-            revealed[atual.y-1][atual.x] = 1;
-        }
-    }
-}
+//         if(foraArrayFunc(atual.x + 1, atual.y) > 0 && foraRevealed(atual.x + 1, atual.y) == 0){
+//             revealed[atual.y][atual.x + 1] = 1;
+//         }
+//         if(foraArrayFunc(atual.x, atual.y+1) > 0 && foraRevealed(atual.x, atual.y+1) == 0){
+//             revealed[atual.y+1][atual.x] = 1;
+//         }
+//         if(foraArrayFunc(atual.x - 1, atual.y) > 0 && foraRevealed(atual.x - 1, atual.y) == 0){
+//             revealed[atual.y][atual.x - 1] = 1;
+//         }
+//         if(foraArrayFunc(atual.x, atual.y-1) > 0 && foraRevealed(atual.x, atual.y-1) == 0){
+//             revealed[atual.y-1][atual.x] = 1;
+//         }
+//     }
+// }
 
 void checkWin(){
     int qtd_bombs_flagged = 0;
+    int total_bombs = 0;
     for(int y = 0; y < HEIGHT; y++){
         for(int x = 0; x < WIDTH; x++){
+            if(board[y][x] == -1){
+                total_bombs++;
+            }
             if(board[y][x] == -1 && revealed[y][x] == 2){
                 qtd_bombs_flagged++;
             }
         }
     }
-    if(qtd_bombs_flagged == qtd_bombas_inicial){
+    if(qtd_bombs_flagged == total_bombs){
         win = true;
     }
 }
